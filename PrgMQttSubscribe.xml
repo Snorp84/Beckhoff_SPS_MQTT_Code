@@ -1,0 +1,197 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<project xmlns="http://www.plcopen.org/xml/tc6_0200">
+  <fileHeader companyName="Beckhoff Automation GmbH" productName="TwinCAT PLC Control" productVersion="3.5.13.20" creationDateTime="2021-01-27T09:58:10.3431314" />
+  <contentHeader name="MQTT" modificationDateTime="2021-01-27T09:58:10.3431314">
+    <coordinateInfo>
+      <fbd>
+        <scaling x="1" y="1" />
+      </fbd>
+      <ld>
+        <scaling x="1" y="1" />
+      </ld>
+      <sfc>
+        <scaling x="1" y="1" />
+      </sfc>
+    </coordinateInfo>
+    <addData>
+      <data name="http://www.3s-software.com/plcopenxml/projectinformation" handleUnknown="implementation">
+        <ProjectInformation />
+      </data>
+    </addData>
+  </contentHeader>
+  <types>
+    <dataTypes />
+    <pous>
+      <pou name="PrgMQttSubscribe" pouType="program">
+        <interface>
+          <inputVars>
+            <variable name="sTopicSub">
+              <type>
+                <string length="255" />
+              </type>
+            </variable>
+          </inputVars>
+          <localVars>
+            <variable name="fbMqttClient">
+              <type>
+                <derived name="FB_IotMqttClient" />
+              </type>
+            </variable>
+            <variable name="bSetParameter">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="TRUE" />
+              </initialValue>
+            </variable>
+            <variable name="bConnect">
+              <type>
+                <BOOL />
+              </type>
+              <initialValue>
+                <simpleValue value="TRUE" />
+              </initialValue>
+            </variable>
+            <variable name="bSubscribed">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> received message </xhtml>
+              </documentation>
+            </variable>
+            <variable name="sTopicRcv">
+              <type>
+                <string length="255" />
+              </type>
+              <addData>
+                <data name="http://www.3s-software.com/plcopenxml/attributes" handleUnknown="implementation">
+                  <Attributes>
+                    <Attribute Name="TcEncoding" Value="UTF-8" />
+                  </Attributes>
+                </data>
+              </addData>
+            </variable>
+            <variable name="sPayloadRcv">
+              <type>
+                <string length="255" />
+              </type>
+              <addData>
+                <data name="http://www.3s-software.com/plcopenxml/attributes" handleUnknown="implementation">
+                  <Attributes>
+                    <Attribute Name="TcEncoding" Value="UTF-8" />
+                  </Attributes>
+                </data>
+              </addData>
+            </variable>
+            <variable name="fbMessageQueue">
+              <type>
+                <derived name="FB_IotMqttMessageQueue" />
+              </type>
+            </variable>
+            <variable name="fbMessage">
+              <type>
+                <derived name="FB_IotMqttMessage" />
+              </type>
+            </variable>
+            <variable name="hrErrorOccurred">
+              <type>
+                <derived name="HRESULT" />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml"> contains the latest occurred error</xhtml>
+              </documentation>
+            </variable>
+          </localVars>
+        </interface>
+        <body>
+          <ST>
+            <xhtml xmlns="http://www.w3.org/1999/xhtml">IF bSetParameter THEN
+	bSetParameter := FALSE;
+	fbMqttClient.sHostName:= GVL_MQTT.mqtt_broker;
+	fbMqttClient.nHostPort:= GVL_MQTT.mqtt_port;
+	fbMqttClient.sTopicPrefix:= ''; 
+	fbMqttClient.sUserName:= GVL_MQTT.username;
+	fbMqttClient.sUserPassword:= GVL_MQTT.password;
+	
+	//Nicht verwendete MQTT Parameter
+//	fbMqttClient.nKeepAlive:= 60; 
+//	fbMqttClient.sClientId:= 'MyTcMqttClient';  
+//	fbMqttClient.stWill:= ; 
+//	fbMqttClient.stTLS:= ;
+	fbMqttClient.ipMessageQueue := fbMessageQueue;
+END_IF
+
+fbMqttClient.Execute(bConnect);
+IF fbMqttClient.bError THEN
+	// add your error logging here
+	hrErrorOccurred := fbMqttClient.hrErrorCode;
+END_IF
+
+IF fbMessageQueue.nQueuedMessages &gt; 0 THEN
+	IF fbMessageQueue.Dequeue(fbMessage:=fbMessage) THEN
+		fbMessage.GetTopic(pTopic:=ADR(sTopicRcv), nTopicSize:=SIZEOF(sTopicRcv) );
+		fbMessage.GetPayload(pPayload:=ADR(sPayloadRcv), nPayloadSize:=SIZEOF(sPayloadRcv), bSetNullTermination:=FALSE);
+	END_IF
+END_IF
+
+IF fbMqttClient.bConnected THEN
+	IF NOT bSubscribed THEN
+		bSubscribed := fbMqttClient.Subscribe(sTopic:=sTopicSub, eQoS:=TcIotMqttQos.AtMostOnceDelivery);
+		IF fbMqttClient.bError THEN
+			// add your error logging here
+			hrErrorOccurred := fbMqttClient.hrErrorCode;
+		END_IF
+	END_IF
+	
+		IF fbMqttClient.bError THEN
+			// add your error logging here
+			hrErrorOccurred := fbMqttClient.hrErrorCode;
+		END_IF
+END_IF</xhtml>
+          </ST>
+        </body>
+        <addData>
+          <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
+            <InterfaceAsPlainText>
+              <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM PrgMQttSubscribe
+VAR_INPUT
+	sTopicSub : STRING(255);
+END_VAR
+VAR
+	fbMqttClient : FB_IotMqttClient;
+	bSetParameter : BOOL := TRUE;
+	bConnect : BOOL := TRUE;
+	
+	(* received message *)
+	bSubscribed : BOOL;
+	{attribute 'TcEncoding':='UTF-8'}
+	sTopicRcv: STRING(255);
+	{attribute 'TcEncoding':='UTF-8'}
+	sPayloadRcv : STRING(255);
+	fbMessageQueue : FB_IotMqttMessageQueue;
+	fbMessage : FB_IotMqttMessage;
+	
+	hrErrorOccurred : HRESULT; // contains the latest occurred error
+END_VAR</xhtml>
+            </InterfaceAsPlainText>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
+            <ObjectId>9cd5086b-00c0-4697-9240-ffc381baeb28</ObjectId>
+          </data>
+        </addData>
+      </pou>
+    </pous>
+  </types>
+  <instances>
+    <configurations />
+  </instances>
+  <addData>
+    <data name="http://www.3s-software.com/plcopenxml/projectstructure" handleUnknown="discard">
+      <ProjectStructure>
+        <Object Name="PrgMQttSubscribe" ObjectId="9cd5086b-00c0-4697-9240-ffc381baeb28" />
+      </ProjectStructure>
+    </data>
+  </addData>
+</project>
